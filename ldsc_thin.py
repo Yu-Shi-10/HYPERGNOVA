@@ -5,6 +5,7 @@ import ld.ldscore as ld
 import ld.parse as ps
 import numpy as np
 import pandas as pd
+from prep import get_maxdist
 
 
 def _remove_dtype(x):
@@ -85,7 +86,7 @@ def _ldscore(bfile, gwas_snps):
 
     #determine block widths
 
-    max_dist = 0.1
+    max_dist = get_maxdist()
     coords = np.array(array_snps.df['CM'])[geno_array.kept_snps]
 
     block_left = ld.getBlockLefts(coords, max_dist)

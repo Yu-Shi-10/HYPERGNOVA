@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from __future__ import division, print_function
 import multiprocessing
+from prep import get_maxdist
 from subprocess import call
 import numpy as np
 import pandas as pd
@@ -40,7 +41,7 @@ def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwa
 
     block_gwas_snps = tmp_gwas_snps[idx]
     block_flip = tmp_flip[idx]
-    max_dist = 0.1
+    max_dist = get_maxdist()
     block_left = ld.getBlockLefts(tmp_coords, max_dist)
 
     blockLD1 = geno_array1.ldCorrVarBlocks(block_left, idx)
@@ -102,7 +103,7 @@ def calGlobalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gw
 
     block_gwas_snps = tmp_gwas_snps[idx]
     block_flip = tmp_flip[idx]
-    max_dist = 0.1
+    max_dist = get_maxdist()
     block_left = ld.getBlockLefts(tmp_coords, max_dist)
 
     blockLD1 = geno_array1.ldCorrVarBlocks(block_left, idx)
