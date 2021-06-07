@@ -203,7 +203,7 @@ class __GenotypeArrayInMemory__(object):
             np.dot(A.T, B / n, out=rfuncAB)
             for ii in range(b):
                 for jj in range(c):
-                    distance = np.ads(coords_A[ii]-coords_B[jj])
+                    distance = np.abs(coords_A[ii]-coords_B[jj])
                     rfuncAB[ii, jj] *= np.exp(-distance * coeff)
             # calculate ld score
             rfuncAB = func(rfuncAB)
