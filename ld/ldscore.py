@@ -114,13 +114,13 @@ class __GenotypeArrayInMemory__(object):
     def __filter_maf_(geno, m, n, maf):
         raise NotImplementedError
 
-    def ldScoreVarBlocks(self, block_left, c, annot=None):
+    def ldScoreVarBlocks(self, block_left, c, shrinkage, coords, annot=None):
         '''Computes an unbiased estimate of L2(j) for j=1,..,M.'''
         func = lambda x: self.__l2_unbiased__(x, self.n)
         snp_getter = self.nextSNPs
         return self.__corSumVarBlocks__(block_left, c, func, snp_getter, shrinkage, coords, annot)
 
-    def ldCorrVarBlocks(self, block_left, idx):
+    def ldCorrVarBlocks(self, block_left, shrinkage, coords, idx):
         '''Computes an empirical estimate of pairwise correlation '''
         self._currentSNP = idx.index[idx][0]
         func = lambda x: self.__l2_unbiased__(x, self.n)

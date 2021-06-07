@@ -51,7 +51,7 @@ def remove_brackets(x):
     return x.replace('[', '').replace(']', '').strip()
 
 
-def _ldscore(bfile, gwas_snps):
+def _ldscore(bfile, gwas_snps, shrinkage):
     '''
     Wrapper function for estimating l1, l1^2, l2 and l4 (+ optionally standard errors) from
     reference panel genotypes.
@@ -115,17 +115,17 @@ def _ldscore(bfile, gwas_snps):
     return df
 
 
-def ldscore(bfile, gwas_snps):
+def ldscore(bfile, gwas_snps, shrinkage):
     df = None
     if '@' in bfile:
         all_dfs = []
         for i in range(1, 23):
             cur_bfile = bfile.replace('@', str(i))
-            all_dfs.append(_ldscore(cur_bfile, gwas_snps))
+            all_dfs.append(_ldscore(cur_bfile, gwas_snps, shrinkage))
             print('Computed LD scores for chromosome {}'.format(i))
         df = pd.concat(all_dfs)
     else:
-        df = _ldscore(bfile, gwas_snps)
+        df = _ldscore(bfile, gwas_snps, shrinkage)
 
     numeric = df._get_numeric_data()
     numeric[numeric < 0] = 0
