@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 def get_maxdist():
-    return 0.2
+    return 1
 
 def allign_alleles(df):
     """Look for reversed alleles and inverts the z-score for one of them.
