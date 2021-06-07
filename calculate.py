@@ -24,7 +24,9 @@ def nearest_Corr(input_mat):
     return A
 
 
-def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2):
+def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2, shrinkage):
+    if shrinkage == None:
+        shrinkage = 0
     m = len(tmp_gwas_snps)
     
     CHR = tmp_partition.iloc[i, 0]
@@ -87,7 +89,9 @@ def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwa
 
     return df
 
-def calGlobalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2):
+def calGlobalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2, shrinkage):
+    if shrinkage == None:
+        shrinkage = 0 
     m = len(tmp_gwas_snps)
     CHR = tmp_partition.iloc[i, 0]
     START = tmp_partition.iloc[i, 1]
@@ -148,7 +152,9 @@ def calGlobalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gw
 
     return df
 
-def _supergnova(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2):
+def _supergnova(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage):
+    if shrinkage == None:
+        shrinkage = 0
     m = len(gwas_snps)
 
     snp_file1, snp_file2, snp_obj = bfile1+'.bim', bfile2+'.bim', ps.PlinkBIMFile
@@ -198,7 +204,7 @@ def _supergnova(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_r
     pool = multiprocessing.Pool(processes = thread)
     for i in range(blockN):
         pool.apply_async(calLocalCov, args=(i, tmp_partition, geno_array1, geno_array2, coords, 
-            bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2),
+            bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2, shrinkage),
             callback=collect_results)
     pool.close()
     pool.join()
@@ -209,8 +215,9 @@ def _supergnova(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_r
     df = df.astype(convert_dict)
     return df
 
-def _supergnova_global(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2):
-
+def _supergnova_global(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage):
+    if shrinkage == None:
+        shrinkage = 0
     snp_file1, snp_file2, snp_obj = bfile1+'.bim', bfile2+'.bim', ps.PlinkBIMFile
     ind_file1, ind_file2, ind_obj = bfile1+'.fam', bfile2+'.fam', ps.PlinkFAMFile
     array_file1, array_file2, array_obj = bfile1+'.bed', bfile2+'.bed', ld.PlinkBEDFile
@@ -258,7 +265,7 @@ def _supergnova_global(bfile1, bfile2, partition, thread, gwas_snps, reversed_al
     pool = multiprocessing.Pool(processes = thread)
     for i in range(blockN):
         pool.apply_async(calGlobalCov, args=(i, tmp_partition, geno_array1, geno_array2, coords, 
-            bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2),
+            bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2, shrinkage),
             callback=collect_results)
     pool.close()
     pool.join()
@@ -269,7 +276,10 @@ def _supergnova_global(bfile1, bfile2, partition, thread, gwas_snps, reversed_al
     #df = df.astype(convert_dict)
     return df
 
-def calculate(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, genome_wide, ld_scores1, ld_scores2):
+def calculate(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, genome_wide, ld_scores1, ld_scores2, shrinkage):
+    if shrinkage == None:
+        shrinkage = 0
+    
     if thread is None:
         thread = multiprocessing.cpu_count()
         print('{C} CPUs are detected. Using {C} threads in computation  ... '.format(C=str(thread)))
@@ -287,12 +297,12 @@ def calculate(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref
                 for i in range(len(chrs)):
                     cur_bfile1 = bfile1.replace('@', str(chrs[i]))
                     cur_bfile2 = bfile2.replace('@', str(chrs[i]))
-                    all_dfs.append(_supergnova_global(cur_bfile1, cur_bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2))
+                    all_dfs.append(_supergnova_global(cur_bfile1, cur_bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage))
                     print('Done with SNPs in chromosome {}'.format(chrs[i]))
             else:
                 for i in range(len(chrs)):
                     cur_bfile1 = bfile1.replace('@', str(chrs[i]))
-                    all_dfs.append(_supergnova_global(cur_bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2))
+                    all_dfs.append(_supergnova_global(cur_bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage))
                     print('Done with SNPs in chromosome {}'.format(chrs[i]))
             df = pd.concat(all_dfs, ignore_index=True)
         else:
@@ -301,11 +311,11 @@ def calculate(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref
                 chrs = list(set(partition.iloc[:,0]))
                 for i in range(len(chrs)):
                     cur_bfile2 = bfile2.replace('@', str(chrs[i]))
-                    all_dfs.append(_supergnova_global(bfile1, cur_bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2))
+                    all_dfs.append(_supergnova_global(bfile1, cur_bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage))
                     print('Done with SNPs in chromosome {}'.format(chrs[i]))
                 df = pd.concat(all_dfs, ignore_index=True)
             else:
-                df = _supergnova_global(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2)
+                df = _supergnova_global(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage)
         total_m = np.sum(df['m'])
         global_Cov = total_m / sqrt(n1 * n2) * np.sum(df['numerator']) / np.sum(df['denominator'])
         results = pd.DataFrame(OrderedDict({"rho":[global_Cov], "m":[total_m]}))
@@ -321,12 +331,12 @@ def calculate(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref
                 for i in range(len(chrs)):
                     cur_bfile1 = bfile1.replace('@', str(chrs[i]))
                     cur_bfile2 = bfile2.replace('@', str(chrs[i]))
-                    all_dfs.append(_supergnova(cur_bfile1, cur_bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2))
+                    all_dfs.append(_supergnova(cur_bfile1, cur_bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage))
                     print('Computed local genetic covariance for chromosome {}'.format(chrs[i]))
             else:
                 for i in range(len(chrs)):
                     cur_bfile1 = bfile1.replace('@', str(chrs[i]))
-                    all_dfs.append(_supergnova(cur_bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2))
+                    all_dfs.append(_supergnova(cur_bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage))
                     print('Computed local genetic covariance for chromosome {}'.format(chrs[i]))
             df = pd.concat(all_dfs, ignore_index=True)
         else:
@@ -335,10 +345,10 @@ def calculate(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref
                 chrs = list(set(partition.iloc[:,0]))
                 for i in range(len(chrs)):
                     cur_bfile2 = bfile2.replace('@', str(chrs[i]))
-                    all_dfs.append(_supergnova(bfile1, cur_bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2))
+                    all_dfs.append(_supergnova(bfile1, cur_bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage))
                     print('Computed local genetic covariance for chromosome {}'.format(chrs[i]))
                 df = pd.concat(all_dfs, ignore_index=True)
             else:
-                df = _supergnova(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2)
+                df = _supergnova(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2, shrinkage)
     
         return df

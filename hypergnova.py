@@ -63,7 +63,7 @@ def pipeline(args):
     #h_1, h_2 = heritability(gwas_snps, ld_scores1, ld_scores2, N1, N2)
     #print('The genome-wide heritability of the first trait is {}.\nThe genome-wide heritability of the second trait is {}.'.format(h_1, h_2))
     print('Calculating local genetic covariance...')
-    out = calculate(args.bfile1, args.bfile2, bed, args.thread, gwas_snps, reversed_alleles_ref, N1, N2, args.genome_wide, ld_scores1, ld_scores2)
+    out = calculate(args.bfile1, args.bfile2, bed, args.thread, gwas_snps, reversed_alleles_ref, N1, N2, args.genome_wide, ld_scores1, ld_scores2, args.shrinkage)
     out.to_csv(args.out, sep=' ', na_rep='NA', index=False)
 
 

@@ -93,7 +93,7 @@ def _ldscore(bfile, gwas_snps):
 
     scale_suffix = ''
 
-    lN = geno_array.ldScoreVarBlocks(block_left, 50, annot=annot_matrix)
+    lN = geno_array.ldScoreVarBlocks(block_left, 50, shrinkage, coords, annot=annot_matrix)
     col_prefix = "L2"
         
     ldscore_colnames = [col_prefix+scale_suffix]
