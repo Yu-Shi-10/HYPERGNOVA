@@ -118,7 +118,7 @@ class __GenotypeArrayInMemory__(object):
         '''Computes an unbiased estimate of L2(j) for j=1,..,M.'''
         func = lambda x: self.__l2_unbiased__(x, self.n)
         snp_getter = self.nextSNPs
-        return self.__corSumVarBlocks__(block_left, c, func, snp_getter, annot)
+        return self.__corSumVarBlocks__(block_left, c, func, snp_getter, shrinkage, coords, annot)
 
     def ldCorrVarBlocks(self, block_left, idx):
         '''Computes an empirical estimate of pairwise correlation '''
