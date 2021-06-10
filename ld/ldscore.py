@@ -239,13 +239,11 @@ class __GenotypeArrayInMemory__(object):
             
             ## get pairwise correlation
             np.dot(A.T, B / n, out=rfuncAB)
-            np.dot(B.T, B / n, out=rfuncBB)
-            
             rfuncAB = func(rfuncAB)
-            rfuncBB = func(rfuncBB)
-
             cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
             cor_sum[l_B:l_B+c, :] += np.dot(annot[l_A:l_A+b, :].T, rfuncAB).T
+            np.dot(B.T, B / n, out=rfuncBB)
+            rfuncBB = func(rfuncBB)
             cor_sum[l_B:l_B+c, :] += np.dot(rfuncBB, annot[l_B:l_B+c, :])
 
         return cor_sum
