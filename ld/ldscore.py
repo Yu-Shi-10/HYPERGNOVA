@@ -345,16 +345,7 @@ class __GenotypeArrayInMemory__(object):
             LD_mat[l_A:l_A+b,l_B:l_B+c] = rfuncAB  #ld matrix
             LD_mat[l_B:l_B+c,l_A:l_A+b] = rfuncAB.T #ld matrix
             LD_mat[l_B:l_B+c,l_B:l_B+c] = rfuncBB  #ld matrix   
-
-        s = 0
-        for i in range(1, 2 * n):
-            s += 1/(i)
-        s = 1 / s
-        theta = s / (2 * n + s)
-        LD_mat *= (1 - theta) ** 2
-
-        for i in range(m):
-            LD_mat[i][i] += (theta/2) * (1-theta / 2)           
+      
         
         return LD_mat 
 
@@ -474,7 +465,7 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
 
         return (y, m_poly, n, kept_snps, freq)
 
-    def nextSNPs(self, b, minorRef=None):
+    def nextSNPs(self, b, minorRef=None, normalize=True):
         '''
         Unpacks the binary array of genotypes and returns an n x b matrix of floats of
         normalized genotypes for the next b SNPs, where n := number of samples.
@@ -519,14 +510,17 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
             ii = newsnp != 9
             avg = np.mean(newsnp[ii])
             newsnp[np.logical_not(ii)] = avg
-            denom = np.std(newsnp)
-            if denom == 0:
-                denom = 1
+            if normalize:
+                denom = np.std(newsnp)
+                if denom == 0:
+                    denom = 1
 
-            if minorRef is not None and self.freq[self._currentSNP + j] > 0.5:
-                denom = denom*-1
+                if minorRef is not None and self.freq[self._currentSNP + j] > 0.5:
+                    denom = denom*-1
 
-            Y[:, j] = (newsnp - avg) / denom
-
+                Y[:, j] = (newsnp - avg) / denom
+            
+            else:
+                Y[:, j] = newsnp - avg
         self._currentSNP += b
         return Y

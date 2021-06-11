@@ -91,7 +91,7 @@ def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwa
 
 def calGlobalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2, shrinkage):
     if shrinkage == None:
-        shrinkage = 0 
+        shrinkage = 0
     m = len(tmp_gwas_snps)
     CHR = tmp_partition.iloc[i, 0]
     START = tmp_partition.iloc[i, 1]
