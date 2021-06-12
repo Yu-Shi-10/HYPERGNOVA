@@ -248,13 +248,13 @@ class __GenotypeArrayInMemory__(object):
 
         return cor_sum
 
-    def __LDmatrix__(self, block_left, snp_getter, func, shrinkage, coords):
+    def __LDmatrix__(self, block_left, snp_getter, func, shrinkage, coords, idx):
         '''
         LD_mat : a matrix that stores the pairwise correlation.
 
         '''
         c = 5
-        m, n = self.m, self.n
+        m, n = np.sum(idx), self.n
         coeff = shrinkage * 11418 * 2 / n
         LD_mat = np.zeros((m,m))       
         block_sizes = np.array(np.arange(m) - block_left)
@@ -288,6 +288,7 @@ class __GenotypeArrayInMemory__(object):
                 for jj in range(c):
                     distance = np.abs(coords_A[ii] - coords_B[jj])
                     rfuncAB[ii, jj] *= np.exp(-distance * coeff)
+            rfuncAB = func(rfuncAB)
             # store the correlation in matrix 
             LD_mat[0:b,l_B:l_B+c] = rfuncAB #ld matrix  
 
@@ -336,10 +337,12 @@ class __GenotypeArrayInMemory__(object):
                 for jj in range(c):
                     distance = np.abs(coords_A[ii] - coords_B[jj])
                     rfuncAB[ii, jj] *= np.exp(-distance * coeff)
+            rfuncAB = func(rfuncAB)
             for ii in range(c):
                 for jj in range(c):
                     distance = np.abs(coords_B[ii] - coords_B[jj])
                     rfuncBB[ii, jj] *= np.exp(-distance * coeff)
+            rfuncBB = func(rfuncBB)
 
             ### store the output in matrix 
             LD_mat[l_A:l_A+b,l_B:l_B+c] = rfuncAB  #ld matrix

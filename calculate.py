@@ -46,9 +46,9 @@ def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwa
     max_dist = get_maxdist()
     block_left = ld.getBlockLefts(tmp_coords, max_dist)
 
-    blockLD1 = geno_array1.ldCorrVarBlocks(block_left, shrinkage, tmp_coords)
+    blockLD1 = geno_array1.ldCorrVarBlocks(block_left, shrinkage, tmp_coords, idx)
     local_LD1 = nearest_Corr(blockLD1)
-    blockLD2 = geno_array2.ldCorrVarBlocks(block_left, shrinkage, tmp_coords)
+    blockLD2 = geno_array2.ldCorrVarBlocks(block_left, shrinkage, tmp_coords, idx)
     flip_multiply = block_flip * 2 - 1
     blockLD2 = blockLD2 * flip_multiply
     blockLD2 = blockLD2.T * flip_multiply
@@ -110,9 +110,9 @@ def calGlobalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gw
     max_dist = get_maxdist()
     block_left = ld.getBlockLefts(tmp_coords, max_dist)
 
-    blockLD1 = geno_array1.ldCorrVarBlocks(block_left, shrinkage, tmp_coords)
+    blockLD1 = geno_array1.ldCorrVarBlocks(block_left, shrinkage, tmp_coords, idx)
     local_LD1 = nearest_Corr(blockLD1)
-    blockLD2 = geno_array2.ldCorrVarBlocks(block_left, shrinkage, tmp_coords)
+    blockLD2 = geno_array2.ldCorrVarBlocks(block_left, shrinkage, tmp_coords, idx)
     flip_multiply = block_flip * 2 - 1
     blockLD2 = blockLD2 * flip_multiply
     blockLD2 = blockLD2.T * flip_multiply
