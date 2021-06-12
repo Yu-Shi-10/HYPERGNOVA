@@ -248,13 +248,13 @@ class __GenotypeArrayInMemory__(object):
 
         return cor_sum
 
-    def __LDmatrix__(self, block_left, snp_getter, func, shrinkage, coords, idx):
+    def __LDmatrix__(self, block_left, snp_getter, func, shrinkage, coords):
         '''
         LD_mat : a matrix that stores the pairwise correlation.
 
         '''
         c = 5
-        m, n = np.sum(idx), self.n
+        m, n = self.m, self.n
         coeff = shrinkage * 11418 * 2 / n
         LD_mat = np.zeros((m,m))       
         block_sizes = np.array(np.arange(m) - block_left)
@@ -272,7 +272,7 @@ class __GenotypeArrayInMemory__(object):
             b = m
         l_A = 0  # l_A := index of leftmost SNP in matrix A
         
-        A = snp_getter(b)
+        A = snp_getter(b, normalize=False)
         coords_A = coords[l_A:l_A+b]
         rfuncAB = np.zeros((b, c))
         rfuncBB = np.zeros((c, c))
@@ -325,7 +325,7 @@ class __GenotypeArrayInMemory__(object):
             if b != old_b:
                 rfuncAB = np.zeros((b, c))
 
-            B = snp_getter(c) # read next c snps
+            B = snp_getter(c, normalize=False) # read next c snps
             coords_B = coords[l_B:l_B+c]
 
             ## get pairwise correlation
