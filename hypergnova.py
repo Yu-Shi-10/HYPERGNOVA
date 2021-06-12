@@ -50,9 +50,9 @@ def pipeline(args):
     print('Preparing files for analysis...')
     gwas_snps, reversed_alleles_ref, bed, N1, N2 = prep(args.bfile1, args.bfile2, args.partition, args.sumstats1, args.sumstats2, args.N1, args.N2)
     print('Calculating LD scores for the first population...')
-    ld_scores1 = ldscore(args.bfile1, gwas_snps)
+    ld_scores1 = ldscore(args.bfile1, gwas_snps, shrinkage = 1)
     print('Calculating LD scores for the second population...')
-    ld_scores2 = ldscore(args.bfile2, gwas_snps)
+    ld_scores2 = ldscore(args.bfile2, gwas_snps, shrinkage = 1)
     ld_scores1 = ld_scores1[ld_scores1['SNP'].isin(ld_scores2['SNP'])]
     ld_scores2 = ld_scores2[ld_scores2['SNP'].isin(ld_scores1['SNP'])]
     subset_index = gwas_snps['SNP'].isin(ld_scores1['SNP'])
@@ -63,7 +63,7 @@ def pipeline(args):
     #h_1, h_2 = heritability(gwas_snps, ld_scores1, ld_scores2, N1, N2)
     #print('The genome-wide heritability of the first trait is {}.\nThe genome-wide heritability of the second trait is {}.'.format(h_1, h_2))
     print('Calculating local genetic covariance...')
-    out = calculate(args.bfile1, args.bfile2, bed, args.thread, gwas_snps, reversed_alleles_ref, N1, N2, args.genome_wide, ld_scores1, ld_scores2, args.shrinkage)
+    out = calculate(args.bfile1, args.bfile2, bed, args.thread, gwas_snps, reversed_alleles_ref, N1, N2, args.genome_wide, ld_scores1, ld_scores2)
     out.to_csv(args.out, sep=' ', na_rep='NA', index=False)
 
 
@@ -93,8 +93,8 @@ parser.add_argument('--thread', default= multiprocessing.cpu_count(), type=int,
     help='Thread numbers used for calculation. Default = CPU numbers.')
 parser.add_argument('--genome_wide', default= False, action='store_true',
     help='Whether to estimate global genetic covariance. Default = F')
-parser.add_argument('--shrinkage', type=float,
-    help='Shrink for LD matrix estimation and LD score estimation.')
+#parser.add_argument('--shrinkage', type=float,
+#    help='Shrink for LD matrix estimation and LD score estimation.')
     
 if __name__ == '__main__':
     pipeline(parser.parse_args())

@@ -114,18 +114,18 @@ class __GenotypeArrayInMemory__(object):
     def __filter_maf_(geno, m, n, maf):
         raise NotImplementedError
 
-    def ldScoreVarBlocks(self, block_left, c, annot=None):
+    def ldScoreVarBlocks(self, block_left, c, shrinkage, coords, annot=None):
         '''Computes an unbiased estimate of L2(j) for j=1,..,M.'''
         func = lambda x: self.__l2_unbiased__(x, self.n)
         snp_getter = self.nextSNPs
-        return self.__corSumVarBlocks__(block_left, c, func, snp_getter, annot)
+        return self.__corSumVarBlocks__(block_left, c, func, snp_getter, shrinkage, coords, annot)
 
-    def ldCorrVarBlocks(self, block_left, shrinkage, coords, idx):
+    def ldCorrVarBlocks(self, block_left, idx):
         '''Computes an empirical estimate of pairwise correlation '''
         self._currentSNP = idx.index[idx][0]
-        func = lambda x: self.__l2_unbiased__(x, self.n)
+        #func = lambda x: self.__l2_unbiased__(x, self.n)
         snp_getter = self.nextSNPs
-        return self.__LDmatrix__(block_left, snp_getter, func, shrinkage, coords, idx)
+        return self.__LDmatrix__(block_left, snp_getter, idx)
 
     def ldScoreBlockJackknife(self, block_left, c, annot=None, jN=10):
         func = lambda x: np.square(x)
@@ -138,7 +138,7 @@ class __GenotypeArrayInMemory__(object):
         return sq - (1-sq) / denom
 
     # general methods for calculating sums of Pearson correlation coefficients
-    def __corSumVarBlocks__(self, block_left, c, func, snp_getter, annot=None):
+    def __corSumVarBlocks__(self, block_left, c, func, snp_getter, shrinkage, coords, annot=None):
         '''
         Parameters
         ----------
@@ -167,6 +167,7 @@ class __GenotypeArrayInMemory__(object):
 
         '''
         m, n = self.m, self.n
+        coeff = shrinkage * 11418 * 2 / n
         block_sizes = np.array(np.arange(m) - block_left)
         block_sizes = np.ceil(block_sizes / c)*c
         if annot is None:
@@ -191,92 +192,9 @@ class __GenotypeArrayInMemory__(object):
             b = m
         l_A = 0  # l_A := index of leftmost SNP in matrix A
         A = snp_getter(b)
-        rfuncAB = np.zeros((b, c))
-        rfuncBB = np.zeros((c, c))
-        # chunk inside of block
-        for l_B in range(0, b, c):  # l_B := index of leftmost SNP in matrix B
-            B = A[:, l_B:l_B+c]
-            # pairwise correlation
-            np.dot(A.T, B / n, out=rfuncAB)
-            # calculate ld score
-            rfuncAB = func(rfuncAB)
-            cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
-        # chunk to right of block
-        b0 = b
-        md = int(c*np.floor(m/c))
-        end = md + 1 if md != m else md
-        for l_B in range(b0, end, c):
-            # check if the annot matrix is all zeros for this block + chunk
-            # this happens w/ sparse categories (i.e., pathways)
-            # update the block
-            old_b = b
-            b = int(block_sizes[l_B])
-            if l_B > b0 and b > 0:
-                # block_size can't increase more than c
-                # block_size can't be less than c unless it is zero
-                # both of these things make sense
-                A = np.hstack((A[:, old_b-b+c:old_b], B))
-                l_A += old_b-b+c
-            elif l_B == b0 and b > 0:
-                A = A[:, b0-b:b0]
-                l_A = b0-b
-            elif b == 0:  # no SNPs to left in window, e.g., after a sequence gap
-                A = np.array(()).reshape((n, 0))
-                l_A = l_B
-            if l_B == md:
-                c = m - md
-                rfuncAB = np.zeros((b, c))
-                rfuncBB = np.zeros((c, c))
-            if b != old_b:
-                rfuncAB = np.zeros((b, c))
-
-            B = snp_getter(c)
-
-            p1 = np.all(annot[l_A:l_A+b, :] == 0)
-            p2 = np.all(annot[l_B:l_B+c, :] == 0)
-            if p1 and p2:
-                continue
-            
-            ## get pairwise correlation
-            np.dot(A.T, B / n, out=rfuncAB)
-            rfuncAB = func(rfuncAB)
-            cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
-            cor_sum[l_B:l_B+c, :] += np.dot(annot[l_A:l_A+b, :].T, rfuncAB).T
-            np.dot(B.T, B / n, out=rfuncBB)
-            rfuncBB = func(rfuncBB)
-            cor_sum[l_B:l_B+c, :] += np.dot(rfuncBB, annot[l_B:l_B+c, :])
-
-        return cor_sum
-
-    def __LDmatrix__(self, block_left, snp_getter, func, shrinkage, coords, idx):
-        '''
-        LD_mat : a matrix that stores the pairwise correlation.
-
-        '''
-        c = 5
-        m, n = np.sum(idx), self.n
-        coeff = shrinkage * 11418 * 2 / n
-        LD_mat = np.zeros((m,m))       
-        block_sizes = np.array(np.arange(m) - block_left)
-        block_sizes = np.ceil(block_sizes / c)*c           
-        
-        bb = block_left > 0
-        b = bb.nonzero()
-        if np.any(b):
-            b = b[0][0]
-        else:
-            b = m
-        b = int(np.ceil(b/c)*c)  # round up to a multiple of c
-        if b > m:
-            c = 1
-            b = m
-        l_A = 0  # l_A := index of leftmost SNP in matrix A
-        
-        A = snp_getter(b, normalize=False)
         coords_A = coords[l_A:l_A+b]
         rfuncAB = np.zeros((b, c))
         rfuncBB = np.zeros((c, c))
-        
         
         # chunk inside of block
         for l_B in range(0, b, c):  # l_B := index of leftmost SNP in matrix B
@@ -284,20 +202,19 @@ class __GenotypeArrayInMemory__(object):
             coords_B = coords_A[l_B:l_B+c]
             # pairwise correlation
             np.dot(A.T, B / n, out=rfuncAB)
+            # calculate ld score
             for ii in range(b):
                 for jj in range(c):
                     distance = np.abs(coords_A[ii] - coords_B[jj])
                     rfuncAB[ii, jj] *= np.exp(-distance * coeff)
             rfuncAB = func(rfuncAB)
-            # store the correlation in matrix 
-            LD_mat[0:b,l_B:l_B+c] = rfuncAB #ld matrix  
-
-
-        # right of first window
+            cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
+        
+        # chunk to right of block
         b0 = b
         md = int(c*np.floor(m/c))
         end = md + 1 if md != m else md
-            
+        
         for l_B in range(b0, end, c):
             # check if the annot matrix is all zeros for this block + chunk
             # this happens w/ sparse categories (i.e., pathways)
@@ -326,23 +243,117 @@ class __GenotypeArrayInMemory__(object):
             if b != old_b:
                 rfuncAB = np.zeros((b, c))
 
-            B = snp_getter(c, normalize=False) # read next c snps
+            B = snp_getter(c)
             coords_B = coords[l_B:l_B+c]
+
+            p1 = np.all(annot[l_A:l_A+b, :] == 0)
+            p2 = np.all(annot[l_B:l_B+c, :] == 0)
+            if p1 and p2:
+                continue
+            
+            ## get pairwise correlation
+            np.dot(A.T, B / n, out=rfuncAB)
+            np.dot(B.T, B / n, out=rfuncBB)
+            for ii in range(b):
+                for jj in range(c):
+                    distance = np.abs(coords_A[ii] - coords_B[jj])
+                    rfuncAB[ii, jj] *= np.exp(-distance * coeff)
+            for ii in range(c):
+                for jj in range(c):
+                    distance = np.abs(coords_B[ii] - coords_B[jj])
+                    rfuncBB[ii, jj] *= np.exp(-distance * coeff)
+
+
+            rfuncAB = func(rfuncAB)
+            rfuncBB = func(rfuncBB)
+
+            cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
+            cor_sum[l_B:l_B+c, :] += np.dot(annot[l_A:l_A+b, :].T, rfuncAB).T
+            cor_sum[l_B:l_B+c, :] += np.dot(rfuncBB, annot[l_B:l_B+c, :])
+
+        return cor_sum
+
+    def __LDmatrix__(self, block_left, snp_getter, idx):
+        '''
+        LD_mat : a matrix that stores the pairwise correlation.
+
+        '''
+        c = 5
+        m, n = np.sum(idx), self.n
+        LD_mat = np.zeros((m,m))       
+        block_sizes = np.array(np.arange(m) - block_left)
+        block_sizes = np.ceil(block_sizes / c)*c           
+        
+        annot = np.ones((m,1))
+        bb = block_left > 0
+        b = bb.nonzero()
+        if np.any(b):
+            b = b[0][0]
+        else:
+            b = m
+        b = int(np.ceil(b/c)*c)  # round up to a multiple of c
+        if b > m:
+            c = 1
+            b = m
+        l_A = 0  # l_A := index of leftmost SNP in matrix A
+        
+        A = snp_getter(b)
+
+        rfuncAB = np.zeros((b, c))
+        rfuncBB = np.zeros((c, c))
+        
+        
+        # chunk inside of block
+        for l_B in range(0, b, c):  # l_B := index of leftmost SNP in matrix B
+            B = A[:, l_B:l_B+c]
+            # pairwise correlation
+            np.dot(A.T, B / n, out=rfuncAB)
+
+            # store the correlation in matrix 
+            LD_mat[0:b,l_B:l_B+c] = rfuncAB #ld matrix  
+
+
+        # right of first window
+        b0 = b
+        md = int(c*np.floor(m/c))
+        end = md + 1 if md != m else md
+            
+        for l_B in range(b0, end, c):
+            # check if the annot matrix is all zeros for this block + chunk
+            # this happens w/ sparse categories (i.e., pathways)
+            # update the block
+            old_b = b
+            b = int(block_sizes[l_B])
+            if l_B > b0 and b > 0:
+                # block_size can't increase more than c
+                # block_size can't be less than c unless it is zero
+                # both of these things make sense
+                A = np.hstack((A[:, old_b-b+c:old_b], B))
+                l_A += old_b-b+c
+            elif l_B == b0 and b > 0:
+                A = A[:, b0-b:b0]
+                l_A = b0-b
+            elif b == 0:  # no SNPs to left in window, e.g., after a sequence gap
+                A = np.array(()).reshape((n, 0))
+                l_A = l_B
+            if l_B == md:
+                c = m - md
+                rfuncAB = np.zeros((b, c))
+                rfuncBB = np.zeros((c, c))
+            if b != old_b:
+                rfuncAB = np.zeros((b, c))
+
+            B = snp_getter(c) # read next c snps
+
+            p1 = np.all(annot[l_A:l_A+b, :] == 0)
+            p2 = np.all(annot[l_B:l_B+c, :] == 0)
+            if p1 and p2:
+                continue
 
             ## get pairwise correlation
             np.dot(A.T, B / n, out=rfuncAB)
             np.dot(B.T, B / n, out=rfuncBB) 
 
-            for ii in range(b):
-                for jj in range(c):
-                    distance = np.abs(coords_A[ii] - coords_B[jj])
-                    rfuncAB[ii, jj] *= np.exp(-distance * coeff)
-            rfuncAB = func(rfuncAB)
-            for ii in range(c):
-                for jj in range(c):
-                    distance = np.abs(coords_B[ii] - coords_B[jj])
-                    rfuncBB[ii, jj] *= np.exp(-distance * coeff)
-            rfuncBB = func(rfuncBB)
 
             ### store the output in matrix 
             LD_mat[l_A:l_A+b,l_B:l_B+c] = rfuncAB  #ld matrix
@@ -468,7 +479,7 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
 
         return (y, m_poly, n, kept_snps, freq)
 
-    def nextSNPs(self, b, minorRef=None, normalize=True):
+    def nextSNPs(self, b, minorRef=None):
         '''
         Unpacks the binary array of genotypes and returns an n x b matrix of floats of
         normalized genotypes for the next b SNPs, where n := number of samples.
@@ -513,17 +524,14 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
             ii = newsnp != 9
             avg = np.mean(newsnp[ii])
             newsnp[np.logical_not(ii)] = avg
-            if normalize:
-                denom = np.std(newsnp)
-                if denom == 0:
-                    denom = 1
+            denom = np.std(newsnp)
+            if denom == 0:
+                denom = 1
 
-                if minorRef is not None and self.freq[self._currentSNP + j] > 0.5:
-                    denom = denom*-1
+            if minorRef is not None and self.freq[self._currentSNP + j] > 0.5:
+                denom = denom*-1
 
                 Y[:, j] = (newsnp - avg) / denom
             
-            else:
-                Y[:, j] = newsnp - avg
         self._currentSNP += b
         return Y
