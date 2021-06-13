@@ -25,7 +25,6 @@ def nearest_Corr(input_mat):
 
 
 def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2):
-
     m = len(tmp_gwas_snps)
     
     CHR = tmp_partition.iloc[i, 0]
@@ -89,7 +88,6 @@ def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwa
     return df
 
 def calGlobalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2):
-
     m = len(tmp_gwas_snps)
     CHR = tmp_partition.iloc[i, 0]
     START = tmp_partition.iloc[i, 1]
@@ -151,7 +149,6 @@ def calGlobalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gw
     return df
 
 def _supergnova(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, ld_scores1, ld_scores2):
-
     m = len(gwas_snps)
 
     snp_file1, snp_file2, snp_obj = bfile1+'.bim', bfile2+'.bim', ps.PlinkBIMFile
@@ -273,7 +270,6 @@ def _supergnova_global(bfile1, bfile2, partition, thread, gwas_snps, reversed_al
     return df
 
 def calculate(bfile1, bfile2, partition, thread, gwas_snps, reversed_alleles_ref, n1, n2, genome_wide, ld_scores1, ld_scores2):
-    
     if thread is None:
         thread = multiprocessing.cpu_count()
         print('{C} CPUs are detected. Using {C} threads in computation  ... '.format(C=str(thread)))

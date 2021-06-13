@@ -167,8 +167,6 @@ class __GenotypeArrayInMemory__(object):
 
         '''
         m, n = self.m, self.n
-        
-
         block_sizes = np.array(np.arange(m) - block_left)
         block_sizes = np.ceil(block_sizes / c)*c
         if annot is None:
@@ -193,26 +191,18 @@ class __GenotypeArrayInMemory__(object):
             b = m
         l_A = 0  # l_A := index of leftmost SNP in matrix A
         A = snp_getter(b)
-        
         rfuncAB = np.zeros((b, c))
         rfuncBB = np.zeros((c, c))
-        
         # chunk inside of block
         for l_B in range(0, b, c):  # l_B := index of leftmost SNP in matrix B
             B = A[:, l_B:l_B+c]
-            
-            # pairwise correlation
             np.dot(A.T, B / n, out=rfuncAB)
-            # calculate ld score
-            
             rfuncAB = func(rfuncAB)
             cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
-        
         # chunk to right of block
         b0 = b
         md = int(c*np.floor(m/c))
         end = md + 1 if md != m else md
-        
         for l_B in range(b0, end, c):
             # check if the annot matrix is all zeros for this block + chunk
             # this happens w/ sparse categories (i.e., pathways)
@@ -224,15 +214,12 @@ class __GenotypeArrayInMemory__(object):
                 # block_size can't be less than c unless it is zero
                 # both of these things make sense
                 A = np.hstack((A[:, old_b-b+c:old_b], B))
-                
                 l_A += old_b-b+c
             elif l_B == b0 and b > 0:
                 A = A[:, b0-b:b0]
-               
                 l_A = b0-b
             elif b == 0:  # no SNPs to left in window, e.g., after a sequence gap
                 A = np.array(()).reshape((n, 0))
-                
                 l_A = l_B
             if l_B == md:
                 c = m - md
@@ -242,14 +229,11 @@ class __GenotypeArrayInMemory__(object):
                 rfuncAB = np.zeros((b, c))
 
             B = snp_getter(c)
-            
-
             p1 = np.all(annot[l_A:l_A+b, :] == 0)
             p2 = np.all(annot[l_B:l_B+c, :] == 0)
             if p1 and p2:
                 continue
-            
-            ## get pairwise correlation
+
             np.dot(A.T, B / n, out=rfuncAB)
             rfuncAB = func(rfuncAB)
             cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
@@ -271,7 +255,9 @@ class __GenotypeArrayInMemory__(object):
         block_sizes = np.array(np.arange(m) - block_left)
         block_sizes = np.ceil(block_sizes / c)*c           
         
-        annot = np.ones((m,1))
+        annot = np.ones((m, 1))
+        #n_a = 1
+        #cor_sum = np.zeros((m, n_a))
         bb = block_left > 0
         b = bb.nonzero()
         if np.any(b):
@@ -295,11 +281,14 @@ class __GenotypeArrayInMemory__(object):
             B = A[:, l_B:l_B+c]
             # pairwise correlation
             np.dot(A.T, B / n, out=rfuncAB)
-
+            
             # store the correlation in matrix 
             LD_mat[0:b,l_B:l_B+c] = rfuncAB #ld matrix  
-
-
+                        
+            # calculate ld scores
+            #rfuncAB = func(rfuncAB)
+            #cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])#
+        
         # right of first window
         b0 = b
         md = int(c*np.floor(m/c))
@@ -331,22 +320,27 @@ class __GenotypeArrayInMemory__(object):
                 rfuncAB = np.zeros((b, c))
 
             B = snp_getter(c) # read next c snps
-
+            
             p1 = np.all(annot[l_A:l_A+b, :] == 0)
             p2 = np.all(annot[l_B:l_B+c, :] == 0)
             if p1 and p2:
                 continue
-
+            
             ## get pairwise correlation
             np.dot(A.T, B / n, out=rfuncAB)
             np.dot(B.T, B / n, out=rfuncBB) 
-
-
+            
             ### store the output in matrix 
             LD_mat[l_A:l_A+b,l_B:l_B+c] = rfuncAB  #ld matrix
             LD_mat[l_B:l_B+c,l_A:l_A+b] = rfuncAB.T #ld matrix
-            LD_mat[l_B:l_B+c,l_B:l_B+c] = rfuncBB  #ld matrix   
-      
+            LD_mat[l_B:l_B+c,l_B:l_B+c] = rfuncBB  #ld matrix              
+                        
+
+            #rfuncAB = func(rfuncAB)
+            #rfuncBB = func(rfuncBB)
+            #cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])#
+            #cor_sum[l_B:l_B+c, :] += np.dot(annot[l_A:l_A+b, :].T, rfuncAB).T#
+            #cor_sum[l_B:l_B+c, :] += np.dot(rfuncBB, annot[l_B:l_B+c, :])#
         
         return LD_mat 
 
@@ -518,7 +512,7 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
             if minorRef is not None and self.freq[self._currentSNP + j] > 0.5:
                 denom = denom*-1
 
-                Y[:, j] = (newsnp - avg) / denom
-            
+            Y[:, j] = (newsnp - avg) / denom
+
         self._currentSNP += b
         return Y
