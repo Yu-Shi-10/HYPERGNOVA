@@ -114,11 +114,11 @@ class __GenotypeArrayInMemory__(object):
     def __filter_maf_(geno, m, n, maf):
         raise NotImplementedError
 
-    def ldScoreVarBlocks(self, block_left, c, shrinkage, coords, annot=None):
+    def ldScoreVarBlocks(self, block_left, c, annot=None):
         '''Computes an unbiased estimate of L2(j) for j=1,..,M.'''
         func = lambda x: self.__l2_unbiased__(x, self.n)
         snp_getter = self.nextSNPs
-        return self.__corSumVarBlocks__(block_left, c, func, snp_getter, shrinkage, coords, annot)
+        return self.__corSumVarBlocks__(block_left, c, func, snp_getter, annot)
 
     def ldCorrVarBlocks(self, block_left, idx):
         '''Computes an empirical estimate of pairwise correlation '''
@@ -138,7 +138,7 @@ class __GenotypeArrayInMemory__(object):
         return sq - (1-sq) / denom
 
     # general methods for calculating sums of Pearson correlation coefficients
-    def __corSumVarBlocks__(self, block_left, c, func, snp_getter, shrinkage, coords, annot=None):
+    def __corSumVarBlocks__(self, block_left, c, func, snp_getter, annot=None):
         '''
         Parameters
         ----------
@@ -167,7 +167,8 @@ class __GenotypeArrayInMemory__(object):
 
         '''
         m, n = self.m, self.n
-        coeff = shrinkage * 11418 * 2 / n
+        
+
         block_sizes = np.array(np.arange(m) - block_left)
         block_sizes = np.ceil(block_sizes / c)*c
         if annot is None:
@@ -192,21 +193,18 @@ class __GenotypeArrayInMemory__(object):
             b = m
         l_A = 0  # l_A := index of leftmost SNP in matrix A
         A = snp_getter(b)
-        coords_A = coords[l_A:l_A+b]
+        
         rfuncAB = np.zeros((b, c))
         rfuncBB = np.zeros((c, c))
         
         # chunk inside of block
         for l_B in range(0, b, c):  # l_B := index of leftmost SNP in matrix B
             B = A[:, l_B:l_B+c]
-            coords_B = coords_A[l_B:l_B+c]
+            
             # pairwise correlation
             np.dot(A.T, B / n, out=rfuncAB)
             # calculate ld score
-            for ii in range(b):
-                for jj in range(c):
-                    distance = np.abs(coords_A[ii] - coords_B[jj])
-                    rfuncAB[ii, jj] *= np.exp(-distance * coeff)
+            
             rfuncAB = func(rfuncAB)
             cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
         
@@ -244,7 +242,7 @@ class __GenotypeArrayInMemory__(object):
                 rfuncAB = np.zeros((b, c))
 
             B = snp_getter(c)
-            coords_B = coords[l_B:l_B+c]
+            
 
             p1 = np.all(annot[l_A:l_A+b, :] == 0)
             p2 = np.all(annot[l_B:l_B+c, :] == 0)
@@ -254,14 +252,6 @@ class __GenotypeArrayInMemory__(object):
             ## get pairwise correlation
             np.dot(A.T, B / n, out=rfuncAB)
             np.dot(B.T, B / n, out=rfuncBB)
-            for ii in range(b):
-                for jj in range(c):
-                    distance = np.abs(coords_A[ii] - coords_B[jj])
-                    rfuncAB[ii, jj] *= np.exp(-distance * coeff)
-            for ii in range(c):
-                for jj in range(c):
-                    distance = np.abs(coords_B[ii] - coords_B[jj])
-                    rfuncBB[ii, jj] *= np.exp(-distance * coeff)
 
 
             rfuncAB = func(rfuncAB)
