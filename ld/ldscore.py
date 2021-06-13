@@ -114,11 +114,11 @@ class __GenotypeArrayInMemory__(object):
     def __filter_maf_(geno, m, n, maf):
         raise NotImplementedError
 
-    def ldScoreVarBlocks(self, block_left, c, annot=None):
+    def ldScoreVarBlocks(self, block_left, c, shrinkage, coords, annot=None):
         '''Computes an unbiased estimate of L2(j) for j=1,..,M.'''
         func = lambda x: self.__l2_unbiased__(x, self.n)
         snp_getter = self.nextSNPs
-        return self.__corSumVarBlocks__(block_left, c, func, snp_getter, annot)
+        return self.__corSumVarBlocks__(block_left, c, func, snp_getter, shrinkage, coords, annot)
 
     def ldCorrVarBlocks(self, block_left, idx):
         '''Computes an empirical estimate of pairwise correlation '''
@@ -138,7 +138,7 @@ class __GenotypeArrayInMemory__(object):
         return sq - (1-sq) / denom
 
     # general methods for calculating sums of Pearson correlation coefficients
-    def __corSumVarBlocks__(self, block_left, c, func, snp_getter, annot=None):
+    def __corSumVarBlocks__(self, block_left, c, func, snp_getter, shrinkage, coords, annot=None):
         '''
         Parameters
         ----------
@@ -167,6 +167,7 @@ class __GenotypeArrayInMemory__(object):
 
         '''
         m, n = self.m, self.n
+        coeff = shrinkage * 1053 * 2 / n 
         block_sizes = np.array(np.arange(m) - block_left)
         block_sizes = np.ceil(block_sizes / c)*c
         if annot is None:
@@ -191,12 +192,19 @@ class __GenotypeArrayInMemory__(object):
             b = m
         l_A = 0  # l_A := index of leftmost SNP in matrix A
         A = snp_getter(b)
+        coords_A = coords[l_A:l_A+b]
         rfuncAB = np.zeros((b, c))
         rfuncBB = np.zeros((c, c))
         # chunk inside of block
         for l_B in range(0, b, c):  # l_B := index of leftmost SNP in matrix B
             B = A[:, l_B:l_B+c]
+            coords_B = coords_A[l_B:l_B+c]
+            # pairwise correlation
             np.dot(A.T, B / n, out=rfuncAB)
+            for ii in range(b):
+                for jj in range(c):
+                    distance = np.abs(coords_A[ii] - coords_B[jj])
+                    rfuncAB[ii, jj] *= np.exp(-distance * coeff)
             rfuncAB = func(rfuncAB)
             cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
         # chunk to right of block
@@ -214,12 +222,15 @@ class __GenotypeArrayInMemory__(object):
                 # block_size can't be less than c unless it is zero
                 # both of these things make sense
                 A = np.hstack((A[:, old_b-b+c:old_b], B))
+                coords_A = np.hstack([coords_A[old_b-b+c:old_b], coords_B])
                 l_A += old_b-b+c
             elif l_B == b0 and b > 0:
                 A = A[:, b0-b:b0]
+                coords_A = coords_A[b0-b:b0]
                 l_A = b0-b
             elif b == 0:  # no SNPs to left in window, e.g., after a sequence gap
                 A = np.array(()).reshape((n, 0))
+                coords_A = np.array([])
                 l_A = l_B
             if l_B == md:
                 c = m - md
@@ -229,16 +240,25 @@ class __GenotypeArrayInMemory__(object):
                 rfuncAB = np.zeros((b, c))
 
             B = snp_getter(c)
+            coords_B = coords[l_B:l_B+c]
             p1 = np.all(annot[l_A:l_A+b, :] == 0)
             p2 = np.all(annot[l_B:l_B+c, :] == 0)
             if p1 and p2:
                 continue
 
             np.dot(A.T, B / n, out=rfuncAB)
+            for ii in range(b):
+                for jj in range(c):
+                    distance = np.abs(coords_A[ii] - coords_B[jj])
+                    rfuncAB[ii, jj] *= np.exp(-distance * coeff)
             rfuncAB = func(rfuncAB)
             cor_sum[l_A:l_A+b, :] += np.dot(rfuncAB, annot[l_B:l_B+c, :])
             cor_sum[l_B:l_B+c, :] += np.dot(annot[l_A:l_A+b, :].T, rfuncAB).T
             np.dot(B.T, B / n, out=rfuncBB)
+            for ii in range(c):
+                for jj in range(c):
+                    distance = np.abs(coords_B[ii] - coords_B[jj])
+                    rfuncBB[ii, jj] *= np.exp(-distance * coeff)
             rfuncBB = func(rfuncBB)
             cor_sum[l_B:l_B+c, :] += np.dot(rfuncBB, annot[l_B:l_B+c, :])
 
