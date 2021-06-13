@@ -224,15 +224,15 @@ class __GenotypeArrayInMemory__(object):
                 # block_size can't be less than c unless it is zero
                 # both of these things make sense
                 A = np.hstack((A[:, old_b-b+c:old_b], B))
-                coords_A = np.hstack([coords_A[old_b-b+c:old_b], coords_B])
+                
                 l_A += old_b-b+c
             elif l_B == b0 and b > 0:
                 A = A[:, b0-b:b0]
-                coords_A = coords_A[b0-b:b0]
+               
                 l_A = b0-b
             elif b == 0:  # no SNPs to left in window, e.g., after a sequence gap
                 A = np.array(()).reshape((n, 0))
-                coords_A = np.array([])
+                
                 l_A = l_B
             if l_B == md:
                 c = m - md
