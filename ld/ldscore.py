@@ -167,7 +167,7 @@ class __GenotypeArrayInMemory__(object):
 
         '''
         m, n = self.m, self.n
-        coeff = shrinkage * 1053 * 2 / n 
+        coeff = shrinkage * 11418 * 2 / n 
         block_sizes = np.array(np.arange(m) - block_left)
         block_sizes = np.ceil(block_sizes / c)*c
         if annot is None:
