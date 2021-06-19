@@ -50,9 +50,9 @@ def pipeline(args):
     print('Preparing files for analysis...')
     gwas_snps, reversed_alleles_ref, bed, N1, N2 = prep(args.bfile1, args.bfile2, args.partition, args.sumstats1, args.sumstats2, args.N1, args.N2)
     print('Calculating LD scores for the first population...')
-    ld_scores1 = ldscore(args.bfile1, gwas_snps, shrinkage=0.5)
+    ld_scores1 = ldscore(args.bfile1, gwas_snps, shrinkage=1)
     print('Calculating LD scores for the second population...')
-    ld_scores2 = ldscore(args.bfile2, gwas_snps, shrinkage=0.1)
+    ld_scores2 = ldscore(args.bfile2, gwas_snps, shrinkage=1)
     ld_scores1 = ld_scores1[ld_scores1['SNP'].isin(ld_scores2['SNP'])]
     ld_scores2 = ld_scores2[ld_scores2['SNP'].isin(ld_scores1['SNP'])]
     subset_index = gwas_snps['SNP'].isin(ld_scores1['SNP'])
