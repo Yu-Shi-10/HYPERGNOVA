@@ -71,7 +71,6 @@ def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwa
     sub_d2 = d2[np.logical_and(d1>0, d2>0)]
     sub_v2 = v2[:,np.logical_and(d1>0, d2>0)]
 
-
     tz1 = np.dot(sub_v1.T, block_gwas_snps['Z_x'])
     tz2 = np.dot(sub_v2.T, block_gwas_snps['Z_y'])
     y = tz1 * tz2 
