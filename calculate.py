@@ -26,7 +26,6 @@ def nearest_Corr(input_mat):
 
 def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwas_snps, tmp_flip, n1, n2, perSNP_h1, perSNP_h2):
     m = len(tmp_gwas_snps)
-    
     CHR = tmp_partition.iloc[i, 0]
     START = tmp_partition.iloc[i, 1]
     END = tmp_partition.iloc[i, 2]
@@ -65,7 +64,7 @@ def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwa
         df = pd.DataFrame(OrderedDict({"chr":[], "start":[], "end":[], "rho":[], "m":[]}))
         return df
     
-
+    
     sub_d1 = d1[np.logical_and(d1>0, d2>0)]
     sub_v1 = v1[:,np.logical_and(d1>0, d2>0)]
 
@@ -74,13 +73,14 @@ def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwa
 
     tz1 = np.dot(sub_v1.T, block_gwas_snps['Z_x'])
     tz2 = np.dot(sub_v2.T, block_gwas_snps['Z_y'])
-    y = tz1 * tz2
+    y = tz1 * tz2 
     sub_v = sub_v1 * sub_v2
     u = sub_v.sum(axis=0)
-    q = 1 / ((n1 * perSNP_h1 * sub_d1 + 1) * (n2 * perSNP_h2 * sub_d2 + 1))
+    # 1 / variance 
+    q = 1 / ((n1 * perSNP_h1 * (sub_d1 ** 2) + sub_d1) * (n2 * perSNP_h2 * (sub_d2 ** 2) + sub_d1))
     numerator = y.T.dot(u * q)
     w = sub_d1 * sub_d2
-    denominator = w.T.dot(np.square(u) * q)
+    denominator = w.T.dot(u * q)
     rho = m0 / sqrt(n1 * n2) * numerator / denominator
 
     df = pd.DataFrame(OrderedDict({"chr":[CHR], "start":[START], "end":[END], "rho":[rho], "m":[m0]}))
@@ -250,7 +250,7 @@ def _supergnova_global(bfile1, bfile2, partition, thread, gwas_snps, reversed_al
     coords = np.array(array_snps1.df['CM'])[geno_array1.kept_snps]
     bps = np.array(array_snps1.df['BP'])[geno_array1.kept_snps]
 
-    ## Calculating local genetic covariance
+    ## Calculating global genetic covariance
     
     results = []
     def collect_results(result):
