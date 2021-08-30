@@ -127,7 +127,6 @@ def calGlobalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gw
         df = pd.DataFrame(OrderedDict({"numerator":[], "denominator":[], "m":[]}))
         return df
     
-
     sub_d1 = d1[np.logical_and(d1>0, d2>0)]
     sub_v1 = v1[:,np.logical_and(d1>0, d2>0)]
 
