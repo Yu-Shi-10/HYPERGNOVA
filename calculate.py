@@ -78,6 +78,7 @@ def calLocalCov(i, tmp_partition, geno_array1, geno_array2, coords, bps, tmp_gwa
     u = sub_v.sum(axis=0)
     # 1 / variance 
     q = 1 / ((n1 * perSNP_h1 * (sub_d1 ** 2) + sub_d1) * (n2 * perSNP_h2 * (sub_d2 ** 2) + sub_d1))
+    
     numerator = y.T.dot(u * q)
     w = sub_d1 * sub_d2
     denominator = w.T.dot(u * q)
